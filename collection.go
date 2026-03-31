@@ -202,10 +202,12 @@ type xmlCollectionStatus struct {
 }
 
 type xmlCollectionItem struct {
-	ObjectID      int64               `xml:"objectid,attr"`
-	SubType       string              `xml:"subtype,attr"`
-	CollID        int64               `xml:"collid,attr"`
-	Name          struct{ Text string `xml:",chardata"` } `xml:"name"`
+	ObjectID int64  `xml:"objectid,attr"`
+	SubType  string `xml:"subtype,attr"`
+	CollID   int64  `xml:"collid,attr"`
+	Name     struct {
+		Text string `xml:",chardata"`
+	} `xml:"name"`
 	YearPublished string              `xml:"yearpublished"`
 	Image         string              `xml:"image"`
 	Thumbnail     string              `xml:"thumbnail"`

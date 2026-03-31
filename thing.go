@@ -16,8 +16,8 @@ const thingPath = "xmlapi2/thing"
 
 // GetThingsRequest is the request for the GetThings API.
 type GetThingsRequest struct {
-	IDs            []int64
-	RankBreakDown  bool // fetch rating distribution (extra API call per thing)
+	IDs           []int64
+	RankBreakDown bool // fetch rating distribution (extra API call per thing)
 }
 
 // Recommendation represents a suggested player count rating.
@@ -273,10 +273,10 @@ type xmlRank struct {
 
 type xmlStatistics struct {
 	Ratings struct {
-		UsersRated    xmlSimpleString `xml:"usersrated"`
-		Average       xmlSimpleString `xml:"average"`
-		BayesAverage  xmlSimpleString `xml:"bayesaverage"`
-		Ranks         struct {
+		UsersRated   xmlSimpleString `xml:"usersrated"`
+		Average      xmlSimpleString `xml:"average"`
+		BayesAverage xmlSimpleString `xml:"bayesaverage"`
+		Ranks        struct {
 			Rank []xmlRank `xml:"rank"`
 		} `xml:"ranks"`
 		AverageWeight xmlSimpleString `xml:"averageweight"`
