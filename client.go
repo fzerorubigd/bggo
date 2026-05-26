@@ -74,6 +74,34 @@ func WithCookies(username string, cookies []*http.Cookie) Option {
 	}
 }
 
+// Cookies returns a deep-copy snapshot of the session cookies currently
+// held by the client. Callers that persist a cookie jar across daemon
+// restarts should snapshot here after a successful Login and restore via
+// WithCookies on the next Client construction. The returned slice and
+// each *http.Cookie are independent of the client's state — mutating
+// either does not affect the client.
+func (c *Client) Cookies() []*http.Cookie {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	if len(c.cookies) == 0 {
+		return nil
+	}
+	out := make([]*http.Cookie, len(c.cookies))
+	for i, src := range c.cookies {
+		cp := *src
+		out[i] = &cp
+	}
+	return out
+}
+
+// Username returns the username currently associated with the session,
+// populated by Login or WithCookies. Empty when the client has no session.
+func (c *Client) Username() string {
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+	return c.username
+}
+
 // WithLimiter sets a rate limiter to throttle API calls.
 func WithLimiter(limiter Limiter) Option {
 	return func(c *Client) {
