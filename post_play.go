@@ -93,7 +93,7 @@ func (c *Client) PostPlay(ctx context.Context, req PostPlayRequest) (*PostPlayRe
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("post play failed: %s", resp.Status)
+		return nil, fmt.Errorf("post play failed: %w", newHTTPStatusError(resp))
 	}
 
 	body, err := io.ReadAll(resp.Body)

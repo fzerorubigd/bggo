@@ -206,7 +206,7 @@ func (c *Client) fetchJSON(ctx context.Context, baseURL string, params map[strin
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("unexpected status: %s", resp.Status)
+		return nil, newHTTPStatusError(resp)
 	}
 
 	return io.ReadAll(resp.Body)
