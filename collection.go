@@ -194,7 +194,7 @@ func (c *Client) GetCollection(ctx context.Context, req GetCollectionRequest) ([
 		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusAccepted {
-			return nil, fmt.Errorf("unexpected status: %s", resp.Status)
+			return nil, newHTTPStatusError(resp)
 		}
 
 		delay += time.Duration(attempt) * time.Second

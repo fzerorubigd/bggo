@@ -173,6 +173,42 @@ func (c *Client) do(req *http.Request) (*http.Response, error) {
 	return c.client.Do(req)
 }
 
+// HTTPStatusError wraps a non-success BGG API response, carrying
+// the HTTP status code + status text so callers can branch on the
+// numeric code with `errors.As`. Methods that previously returned
+// an unwrapped `unexpected status: ...` string now return this
+// type wrapped via fmt.Errorf so existing error-message readers
+// keep working and new callers can do:
+//
+//	var statusErr *bggo.HTTPStatusError
+//	if errors.As(err, &statusErr) && statusErr.StatusCode == 401 {
+//	    // re-login + retry
+//	}
+type HTTPStatusError struct {
+	// StatusCode is the integer HTTP status (e.g. 401, 503).
+	StatusCode int
+	// Status is the textual status line from the response
+	// (e.g. "401 Unauthorized"). Matches http.Response.Status.
+	Status string
+}
+
+// Error implements the error interface with the same message
+// shape callers saw pre-#-typed-error so logs / tests that
+// string-match on "unexpected status:" keep working.
+func (e *HTTPStatusError) Error() string {
+	return "unexpected status: " + e.Status
+}
+
+// newHTTPStatusError constructs an HTTPStatusError from an
+// http.Response. Callers should use this at the non-success
+// branch in each API method so the typed wrapping is uniform.
+func newHTTPStatusError(resp *http.Response) *HTTPStatusError {
+	return &HTTPStatusError{
+		StatusCode: resp.StatusCode,
+		Status:     resp.Status,
+	}
+}
+
 type bggError struct {
 	XMLName xml.Name `xml:"error"`
 	Message string   `xml:"message"`

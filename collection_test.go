@@ -2,6 +2,7 @@ package bggo_test
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -242,4 +243,38 @@ func TestClient_CookiesEmptyWhenNoSession(t *testing.T) {
 	c := bggo.NewClient("fixture-key")
 	assert.Nil(t, c.Cookies())
 	assert.Empty(t, c.Username())
+}
+
+// TestGetCollection_HTTPStatusError_WrapsStatus pins the typed-
+// error contract: a non-200 / non-202 response from the
+// collection endpoint surfaces as `*bggo.HTTPStatusError` via
+// `errors.As`, carrying the integer status code so callers can
+// branch on 401 (re-login + retry) vs 5xx / other 4xx.
+func TestGetCollection_HTTPStatusError_WrapsStatus(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(server.Close)
+	u, err := url.Parse(server.URL)
+	require.NoError(t, err)
+	c := bggo.NewClient("fixture-key", bggo.WithHost(u.Host), bggo.WithScheme(u.Scheme))
+
+	_, err = c.GetCollection(context.Background(), bggo.GetCollectionRequest{Username: "operator"})
+	require.Error(t, err)
+	var statusErr *bggo.HTTPStatusError
+	require.True(t, errors.As(err, &statusErr), "error must unwrap to *HTTPStatusError")
+	assert.Equal(t, http.StatusUnauthorized, statusErr.StatusCode)
+	assert.Contains(t, statusErr.Status, "401")
+	assert.Contains(t, statusErr.Error(), "unexpected status:",
+		"Error() text must preserve the legacy `unexpected status:` prefix for log compatibility")
+}
+
+// TestHTTPStatusError_PreservesLegacyMessageShape pins that
+// callers (logs / tests) that string-match on `unexpected
+// status:` keep working under the typed-error addition.
+func TestHTTPStatusError_PreservesLegacyMessageShape(t *testing.T) {
+	t.Parallel()
+	e := &bggo.HTTPStatusError{StatusCode: 503, Status: "503 Service Unavailable"}
+	assert.Equal(t, "unexpected status: 503 Service Unavailable", e.Error())
 }
