@@ -106,6 +106,26 @@ type GetTrendOutput struct {
 	Items []bggo.TrendItem `json:"items" jsonschema:"trend items"`
 }
 
+// getThings backs the get_things tool. It rejects an empty/absent `ids` with a
+// model-actionable error (surfaced as an isError tool result the caller feeds
+// back) that steers the model to `search` first, rather than making an opaque
+// empty call — the model reaching for get_things without an id in hand is the
+// underlying cause. A null-in-array `ids` is rejected earlier by the SDK's schema
+// validation, so it never reaches here.
+func getThings(ctx context.Context, client *bggo.Client, input GetThingsInput) (*mcp.CallToolResult, GetThingsOutput, error) {
+	if len(input.IDs) == 0 {
+		return nil, GetThingsOutput{}, fmt.Errorf("get_things needs one or more numeric BGG ids in `ids`; call `search` first to resolve a game name to an id")
+	}
+	things, err := client.GetThings(ctx, bggo.GetThingsRequest{
+		IDs:           input.IDs,
+		RankBreakDown: input.RankBreakDown,
+	})
+	if err != nil {
+		return nil, GetThingsOutput{}, err
+	}
+	return nil, GetThingsOutput{Things: things}, nil
+}
+
 func main() {
 	apiKey := os.Getenv("BGG_API_KEY")
 	if apiKey == "" {
@@ -156,16 +176,9 @@ func main() {
 	// get_things
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "get_things",
-		Description: "Get detailed information about board games by their BGG IDs (max 20 at a time). Returns name, description, player counts, play time, ratings, categories, mechanics, designers, and more.",
+		Description: "Get detailed information about board games by their numeric BGG IDs (max 20 at a time). Requires ids you already have — if you only have a game name, call `search` first to resolve it to an id. Returns name, description, player counts, play time, ratings, categories, mechanics, designers, and more.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input GetThingsInput) (*mcp.CallToolResult, GetThingsOutput, error) {
-		things, err := client.GetThings(ctx, bggo.GetThingsRequest{
-			IDs:           input.IDs,
-			RankBreakDown: input.RankBreakDown,
-		})
-		if err != nil {
-			return nil, GetThingsOutput{}, err
-		}
-		return nil, GetThingsOutput{Things: things}, nil
+		return getThings(ctx, client, input)
 	})
 
 	// get_collection
