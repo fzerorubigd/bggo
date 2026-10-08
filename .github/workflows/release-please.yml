@@ -1,0 +1,43 @@
+# Versioned releases from Conventional Commits.
+#
+# On every push to main, release-please keeps a release PR open that collects
+# the changelog and the next version, computed from v0.2.1 (the version in
+# .release-please-manifest.json). Merging that PR creates the tag and the
+# GitHub release, and the `binaries` job then runs release.yml to build the
+# bgg-mcp binaries and attach them to that release.
+#
+# The binaries are built from here, not by the tag push: a tag pushed with
+# the built-in GITHUB_TOKEN does not start other workflows, so release.yml's
+# own tag trigger would not fire for a release-please tag.
+
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - id: release
+        uses: googleapis/release-please-action@v5
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  binaries:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag_name }}

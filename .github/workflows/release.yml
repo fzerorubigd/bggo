@@ -1,8 +1,17 @@
 name: Release
 
+# Builds the bgg-mcp binaries and attaches them to the release for a tag.
+# Runs when a v* tag is pushed by hand, and is called by release-please.yml
+# for the tags release-please creates (see the note there).
 on:
   push:
     tags: ["v*"]
+  workflow_call:
+    inputs:
+      tag:
+        description: The release tag to build and attach the binaries to.
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       - uses: actions/setup-go@v7
         with:
@@ -41,5 +52,8 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v3
         with:
-          generate_release_notes: true
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          # release-please writes its own notes into the release it creates;
+          # generate them only for a tag pushed by hand.
+          generate_release_notes: ${{ !inputs.tag }}
           files: dist/*
