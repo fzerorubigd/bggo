@@ -199,9 +199,9 @@ func (c *Client) fetchJSON(ctx context.Context, baseURL string, params map[strin
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.do(req)
+	resp, err := c.doQueued(req)
 	if err != nil {
-		return nil, fmt.Errorf("http call: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 

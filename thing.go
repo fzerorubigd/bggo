@@ -204,9 +204,9 @@ func (c *Client) GetThings(ctx context.Context, req GetThingsRequest) ([]ThingRe
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.do(httpReq)
+	resp, err := c.doQueued(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("http call: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -404,9 +404,9 @@ func (c *Client) fetchRankBreakDown(ctx context.Context, gameID int64) (RankBrea
 		return rbd, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.do(req)
+	resp, err := c.doQueued(req)
 	if err != nil {
-		return rbd, fmt.Errorf("http call: %w", err)
+		return rbd, err
 	}
 	defer resp.Body.Close()
 

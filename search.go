@@ -48,9 +48,9 @@ func (c *Client) Search(ctx context.Context, req SearchRequest) ([]SearchResult,
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.do(httpReq)
+	resp, err := c.doQueued(httpReq)
 	if err != nil {
-		return nil, fmt.Errorf("http call: %w", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
 

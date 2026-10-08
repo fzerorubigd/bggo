@@ -178,34 +178,13 @@ func (c *Client) GetCollection(ctx context.Context, req GetCollectionRequest) ([
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	var (
-		resp  *http.Response
-		delay = time.Second
-	)
-	for attempt := 1; ; attempt++ {
-		resp, err = c.do(httpReq)
-		if err != nil {
-			return nil, fmt.Errorf("http call: %w", err)
-		}
-
-		if resp.StatusCode == http.StatusOK {
-			break
-		}
+	resp, err := c.doQueued(httpReq)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-
-		if resp.StatusCode != http.StatusAccepted {
-			return nil, newHTTPStatusError(resp)
-		}
-
-		delay += time.Duration(attempt) * time.Second
-		if delay > 30*time.Second {
-			delay = 30 * time.Second
-		}
-		select {
-		case <-time.After(delay):
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
+		return nil, newHTTPStatusError(resp)
 	}
 	defer resp.Body.Close()
 
